@@ -3,6 +3,8 @@ Implements a Tree class to work with Stanford Sentiment Treebank.
 """
 import util
 
+UNK = 'UNK'     # denotes all unknown words
+
 
 class Node:
 
@@ -29,6 +31,28 @@ class Node:
             node = node.parent
         return d
 
+    def tree_string(self):
+        if self.is_leaf:
+            return "({} {})".format(self.label, self.word)
+        else:
+            return "({} {} {})".format(
+                self.label,
+                self.left.tree_string(),
+                self.right.tree_string(),
+            )
+
+    def formatted_string(self, depth=0):
+        indentation = '    ' * depth
+        s = indentation
+        if self.is_leaf:
+            s += "({} {})".format(self.label, self.word)
+        else:
+            s += "({}".format(self.label)
+            s += "\n" + self.left.formatted_string(depth + 1)
+            s += "\n" + self.right.formatted_string(depth + 1)
+            s += "\n" + indentation + ")"
+        return s
+
 
 class Tree:
 
@@ -41,6 +65,9 @@ class Tree:
         string = string.replace(self.close_char, ' ' + self.close_char + ' ')
         tokens = [t for t in string.strip().split()]
         self.root = self.parse(tokens=tokens)
+
+    def __str__(self):
+        return self.root.tree_string()
 
     def parse(self, tokens, parent=None):
         assert tokens[0] == self.open_char, "Illegal tree string (open character)"
@@ -70,4 +97,10 @@ class Tree:
         return node
 
     def display(self):
-        pass
+        print(self.root.formatted_string())
+
+
+if __name__ == '__main__':
+    tree_string = "(5 (3 I) (5 (5 love) (3 it)))"
+    tree = Tree(tree_string)
+    tree.display()
