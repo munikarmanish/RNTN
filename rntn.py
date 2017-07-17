@@ -76,7 +76,7 @@ class RNTN:
             pickle.dump(self.learning_rate, f)
             pickle.dump(self.max_epochs, f)
             pickle.dump(self.stack, f)
-            # pickle.dump(self.word_map, f)
+            pickle.dump(self.word_map, f)
 
     def load(filename):
         with open(filename, 'rb') as f:
@@ -91,7 +91,7 @@ class RNTN:
                          reg=reg, learning_rate=learning_rate, max_epochs=max_epochs)
             model.stack = stack
             model.L, model.V, model.W, model.b, model.Ws, model.bs = model.stack
-            # model.word_map = pickle.load(f)
+            model.word_map = pickle.load(f)
             return model
 
     def init_params(self):

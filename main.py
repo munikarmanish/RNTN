@@ -17,7 +17,7 @@ def main():
                         help="Vector dimension")
     parser.add_argument("-k", "--output-dim", type=int, default=5,
                         help="Number of output classes")
-    parser.add_argument("-e", "--epochs", type=int, default=30,
+    parser.add_argument("-e", "--epochs", type=int, default=20,
                         help="Maximum number of epochs")
     parser.add_argument("-f", "--dataset", type=str, default="train",
                         choices=['train', 'dev', 'test'], help="Dataset")
@@ -48,7 +48,6 @@ def main():
 
     # use the model to test on an arbitrary review
     model = rntn.RNTN.load('models/RNTN.pickle')
-    model.word_map = tr.load_word_map()
     test_review = "good"
     tree = tr.parse(test_review)[0]
     out_tree = model.predict(tree)
