@@ -17,13 +17,13 @@ def main():
                         help="Vector dimension")
     parser.add_argument("-k", "--output-dim", type=int, default=5,
                         help="Number of output classes")
-    parser.add_argument("-e", "--epochs", type=int, default=20,
+    parser.add_argument("-e", "--epochs", type=int, default=50,
                         help="Maximum number of epochs")
     parser.add_argument("-f", "--dataset", type=str, default="train",
                         choices=['train', 'dev', 'test'], help="Dataset")
     parser.add_argument("-l", "--learning-rate", type=float, default=1e-2,
                         help="Learning rate")
-    parser.add_argument("-b", "--batch-size", type=int, default=10,
+    parser.add_argument("-b", "--batch-size", type=int, default=30,
                         help="Batch size")
     parser.add_argument("-r", "--reg", type=float, default=1e-6,
                         help="Regularization parameter")
@@ -33,26 +33,24 @@ def main():
                         help="Model file")
     args = parser.parse_args()
 
-    # Initialize the model
-    model = rntn.RNTN(
-        dim=args.dim, output_dim=args.output_dim, batch_size=args.batch_size,
-        reg=args.reg, learning_rate=args.learning_rate, max_epochs=args.epochs)
-
-    # Train
-    train_trees = tr.load_trees(args.dataset)
-    model.fit(train_trees)
-
     # Test
-    # test_trees = tr.load_trees(args.dataset)
-    # model.test(test_trees)
+    if args.test:
+        print("Testing...")
+        model = rntn.RNTN.load(args.model)
+        test_trees = tr.load_trees(args.dataset)
+        cost, correct, total = model.test(test_trees)
+        accuracy = correct * 100.0 / total
+        print("Cost = {:.2f}, Correct = {:.0f} / {:.0f}, Accuracy = {:.2f} %".format(
+            cost, correct, total, accuracy))
+    else:
+        # Initialize the model
+        model = rntn.RNTN(
+            dim=args.dim, output_dim=args.output_dim, batch_size=args.batch_size,
+            reg=args.reg, learning_rate=args.learning_rate, max_epochs=args.epochs)
 
-    # use the model to test on an arbitrary review
-    model = rntn.RNTN.load('models/RNTN.pickle')
-    test_review = "good"
-    tree = tr.parse(test_review)[0]
-    out_tree = model.predict(tree)
-    out_tree.pretty_print()
-    print("Root probabilities = ", out_tree.output)
+        # Train
+        train_trees = tr.load_trees(args.dataset)
+        model.fit(train_trees, export_filename=args.model)
 
 
 if __name__ == '__main__':

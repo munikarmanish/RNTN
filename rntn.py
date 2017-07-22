@@ -40,7 +40,7 @@ class RNTN:
             self.save(export_filename)
 
     def test(self, trees):
-        raise NotImplementedError
+        return self.cost_and_grad(trees, test=True)
 
     def predict(self, tree):
         if tr.isleaf(tree):
@@ -122,14 +122,6 @@ class RNTN:
         cost, correct, total = 0.0, 0.0, 0.0
         self.L, self.V, self.W, self.b, self.Ws, self.bs = self.stack
 
-        # Initialize gradients
-        self.dL = collections.defaultdict(lambda: np.zeros((self.dim,)))
-        self.dV[:] = 0
-        self.dW[:] = 0
-        self.db[:] = 0
-        self.dWs[:] = 0
-        self.dbs[:] = 0
-
         # Forward propagation
         for tree in trees:
             _cost, _correct, _total = self.forward_prop(tree)
@@ -139,6 +131,14 @@ class RNTN:
 
         if test:
             return cost / len(trees), correct, total
+
+        # Initialize gradients
+        self.dL = collections.defaultdict(lambda: np.zeros((self.dim,)))
+        self.dV[:] = 0
+        self.dW[:] = 0
+        self.db[:] = 0
+        self.dWs[:] = 0
+        self.dbs[:] = 0
 
         # Back propagattion
         for tree in trees:
@@ -169,7 +169,11 @@ class RNTN:
 
         if tr.isleaf(tree):
             # output = word vector
-            tree.vector = self.L[:, self.word_map[tree[0]]]
+            try:
+                tree.vector = self.L[:, self.word_map[tree[0]]]
+            except:
+                tree.vector = self.L[:, self.word_map[tr.UNK]]
+            tree.fprop = True
         else:
             # calculate output of child nodes
             lcost, lcorrect, ltotal = self.forward_prop(tree[0])
@@ -185,8 +189,12 @@ class RNTN:
                 np.dot(self.W, lr) + self.b)
 
         # softmax
-        import util
-        tree.output = util.softmax(np.dot(self.Ws, tree.vector) + self.bs)
+        tree.output = np.dot(self.Ws, tree.vector) + self.bs
+        tree.output -= np.max(tree.output)
+        tree.output = np.exp(tree.output)
+        tree.output /= np.sum(tree.output)
+
+        tree.frop = True
 
         # cost
         cost -= np.log(tree.output[int(tree.label())])
@@ -196,6 +204,9 @@ class RNTN:
         return cost, correct, total
 
     def back_prop(self, tree, error=None):
+        # clear nodes
+        tree.frop = False
+
         # softmax grad
         deltas = tree.output
         deltas[int(tree.label())] -= 1.0
@@ -215,7 +226,7 @@ class RNTN:
         else:
             lr = np.hstack([tree[0].vector, tree[1].vector])
             outer = np.outer(deltas, lr)
-            self.dV += (np.outer(lr, lr)[:, :, None] * deltas).T
+            self.dV += (np.outer(lr, lr)[..., None] * deltas).T
             self.dW += outer
             self.db += deltas
 
