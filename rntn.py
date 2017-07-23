@@ -13,21 +13,24 @@ import tree as tr
 
 class RNTN:
 
-    def __init__(self, dim=10, output_dim=5, batch_size=30, reg=10, learning_rate=1e-2, max_epochs=2):
+    def __init__(self, dim=10, output_dim=5, batch_size=30, reg=10,
+                 learning_rate=1e-2, max_epochs=2, optimizer='adagrad'):
         self.dim = dim
         self.output_dim = output_dim
         self.batch_size = batch_size
         self.reg = reg
         self.learning_rate = learning_rate
         self.max_epochs = max_epochs
+        self.optimizer_algorithm = optimizer
 
-    def fit(self, trees, export_filename='models/RNTN.pickle'):
+    def fit(self, trees, export_filename='models/RNTN.pickle', verbose=False):
         import sgd
 
         self.word_map = tr.load_word_map()
         self.num_words = len(self.word_map)
         self.init_params()
-        self.optimizer = sgd.SGD(self, self.learning_rate, self.batch_size)
+        self.optimizer = sgd.SGD(self, self.learning_rate, self.batch_size,
+                                 self.optimizer_algorithm)
 
         for epoch in range(self.max_epochs):
             print("Running epoch {} ...".format(epoch))
@@ -40,6 +43,9 @@ class RNTN:
             self.save(export_filename)
 
     def test(self, trees):
+        """
+        TODO: This should return the confusion matrix
+        """
         return self.cost_and_grad(trees, test=True)
 
     def predict(self, tree):

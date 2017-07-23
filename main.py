@@ -31,6 +31,8 @@ def main():
                         help="Test a model")
     parser.add_argument("-m", "--model", type=str, default='models/RNTN.pickle',
                         help="Model file")
+    parser.add_argument("-o", "--optimizer", type=str, default='adagrad',
+                        help="Optimizer", choices=['sgd', 'adagrad'])
     args = parser.parse_args()
 
     # Test
@@ -46,7 +48,8 @@ def main():
         # Initialize the model
         model = rntn.RNTN(
             dim=args.dim, output_dim=args.output_dim, batch_size=args.batch_size,
-            reg=args.reg, learning_rate=args.learning_rate, max_epochs=args.epochs)
+            reg=args.reg, learning_rate=args.learning_rate, max_epochs=args.epochs,
+            optimizer=args.optimizer)
 
         # Train
         train_trees = tr.load_trees(args.dataset)
