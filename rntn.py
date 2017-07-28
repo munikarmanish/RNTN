@@ -3,8 +3,10 @@ Implementation of the Recursive Neural Tensor Network (RNTN) model
 """
 
 import collections
+import csv
 import pickle
 import time
+from datetime import datetime
 
 import numpy as np
 
@@ -31,16 +33,34 @@ class RNTN:
         self.init_params()
         self.optimizer = sgd.SGD(self, self.learning_rate, self.batch_size,
                                  self.optimizer_algorithm)
+        test_trees = tr.load_trees('test')
 
-        for epoch in range(self.max_epochs):
-            print("Running epoch {} ...".format(epoch))
-            start = time.time()
-            self.optimizer.optimize(trees)
-            end = time.time()
-            print("   Time per epoch = {:.4f}".format(end-start))
+        with open("log.csv", "a", newline='') as csvfile:
+            csvwriter = csv.writer(csvfile)
+            fieldnames = ["Timestamp", "Vector size", "Learning rate",
+                          "Batch size", "Regularization", "Epoch", "Cost",
+                          "Accuracy"]
+            if csvfile.tell() == 0:
+                csvwriter.writerow(fieldnames)
 
-            # Save the model
-            self.save(export_filename)
+            for epoch in range(self.max_epochs):
+                print("Running epoch {} ...".format(epoch))
+                start = time.time()
+                self.optimizer.optimize(trees)
+                end = time.time()
+                print("   Time per epoch = {:.4f}".format(end-start))
+
+                # Save the model
+                self.save(export_filename)
+
+                # Test the model
+                cost, correct, total = self.test(test_trees)
+                accuracy = correct * 100.0 / total
+
+                # Append data to CSV file
+                row = [datetime.now(), self.dim, self.learning_rate,
+                       self.batch_size, self.reg, epoch, cost, accuracy]
+                csvwriter.writerow(row)
 
     def test(self, trees):
         """
