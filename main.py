@@ -40,10 +40,10 @@ def main():
         print("Testing...")
         model = rntn.RNTN.load(args.model)
         test_trees = tr.load_trees(args.dataset)
-        cost, correct, total = model.test(test_trees)
-        accuracy = correct * 100.0 / total
+        cost, result = model.test(test_trees)
+        accuracy = 100.0 * result.trace() / result.sum()
         print("Cost = {:.2f}, Correct = {:.0f} / {:.0f}, Accuracy = {:.2f} %".format(
-            cost, correct, total, accuracy))
+            cost, result.trace(), result.sum(), accuracy))
     else:
         # Initialize the model
         model = rntn.RNTN(

@@ -38,8 +38,9 @@ class RNTN:
         with open("log.csv", "a", newline='') as csvfile:
             csvwriter = csv.writer(csvfile)
             fieldnames = ["Timestamp", "Vector size", "Learning rate",
-                          "Batch size", "Regularization", "Epoch", "Cost",
-                          "Accuracy"]
+                          "Batch size", "Regularization", "Epoch",
+                          "Train cost", "Train accuracy",
+                          "Test cost", "Test accuracy"]
             if csvfile.tell() == 0:
                 csvwriter.writerow(fieldnames)
 
@@ -53,13 +54,17 @@ class RNTN:
                 # Save the model
                 self.save(export_filename)
 
-                # Test the model
-                cost, correct, total = self.test(test_trees)
-                accuracy = correct * 100.0 / total
+                # Test the model on train and test set
+                train_cost, train_result = self.test(trees)
+                train_accuracy = 100.0 * train_result.trace() / train_result.sum()
+                test_cost, test_result = self.test(test_trees)
+                test_accuracy = 100.0 * test_result.trace() / test_result.sum()
 
                 # Append data to CSV file
                 row = [datetime.now(), self.dim, self.learning_rate,
-                       self.batch_size, self.reg, epoch, cost, accuracy]
+                       self.batch_size, self.reg, epoch,
+                       train_cost, train_accuracy,
+                       test_cost, test_accuracy]
                 csvwriter.writerow(row)
 
     def test(self, trees):
@@ -145,18 +150,17 @@ class RNTN:
         self.dbs = np.empty_like(self.bs)
 
     def cost_and_grad(self, trees, test=False):
-        cost, correct, total = 0.0, 0.0, 0.0
+        cost, result = 0.0, np.zeros((5,5))
         self.L, self.V, self.W, self.b, self.Ws, self.bs = self.stack
 
         # Forward propagation
         for tree in trees:
-            _cost, _correct, _total = self.forward_prop(tree)
+            _cost, _result = self.forward_prop(tree)
             cost += _cost
-            correct += _correct
-            total += _total
+            result += _result
 
         if test:
-            return cost / len(trees), correct, total
+            return cost / len(trees), result
 
         # Initialize gradients
         self.dL = collections.defaultdict(lambda: np.zeros((self.dim,)))
@@ -191,7 +195,8 @@ class RNTN:
         return cost, grad
 
     def forward_prop(self, tree):
-        cost, correct, total = 0.0, 0.0, 0.0
+        cost = 0.0
+        result = np.zeros((5,5))
 
         if tr.isleaf(tree):
             # output = word vector
@@ -202,11 +207,10 @@ class RNTN:
             tree.fprop = True
         else:
             # calculate output of child nodes
-            lcost, lcorrect, ltotal = self.forward_prop(tree[0])
-            rcost, rcorrect, rtotal = self.forward_prop(tree[1])
+            lcost, lresult = self.forward_prop(tree[0])
+            rcost, rresult = self.forward_prop(tree[1])
             cost += lcost + rcost
-            correct += lcorrect + rcorrect
-            total += ltotal + rtotal
+            result += lresult + rresult
 
             # compute output
             lr = np.hstack([tree[0].vector, tree[1].vector])
@@ -224,10 +228,11 @@ class RNTN:
 
         # cost
         cost -= np.log(tree.output[int(tree.label())])
-        correct += (np.argmax(tree.output) == int(tree.label()))
-        total += 1
+        true_label = int(tree.label())
+        predicted_label = np.argmax(tree.output)
+        result[true_label, predicted_label] += 1
 
-        return cost, correct, total
+        return cost, result
 
     def back_prop(self, tree, error=None):
         # clear nodes
@@ -245,7 +250,11 @@ class RNTN:
 
         # leaf node => update word vectors
         if tr.isleaf(tree):
-            self.dL[self.word_map[tree[0]]] += deltas
+            try:
+                index = self.word_map[tree[0]]
+            except KeyError:
+                index = self.word_map[tr.UNK]
+            self.dL[index] += deltas
             return
 
         # Hidden gradients

@@ -119,5 +119,6 @@ ENV/
 
 # End of https://www.gitignore.io/api/linux,python
 
-trees
+#trees
 models
+log.csv

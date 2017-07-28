@@ -1,7 +1,5 @@
 #!/bin/env python3
 
-import unittest
-
 import tree as tr
 
 
@@ -21,9 +19,9 @@ def f(model, text):
     >>> model = rntn.RNTN.load('models/RNTN.pickle')
     >>> f(model, "not very good")
            1
-      -----|-----
+       ____|____
       |         4
-      |      ---|---
+      |       __|__
       2      2     3
       |      |     |
      not   very   good
@@ -31,7 +29,3 @@ def f(model, text):
     """
     for tree in tr.parse(text):
         model.predict(tree).pretty_print()
-
-
-if __name__ == '__main__':
-    unittest.main()
